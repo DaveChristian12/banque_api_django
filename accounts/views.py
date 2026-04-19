@@ -14,21 +14,51 @@ class HealthCheckView(APIView):
         return Response({"status": "API is running ✅"}, status=status.HTTP_200_OK)
 
 # ========================
+# 0b. Database Check
+# ========================
+class DatabaseCheckView(APIView):
+    def get(self, request):
+        try:
+            from django.db import connection
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT 1")
+            return Response({
+                "status": "Database is connected ✅",
+                "database": connection.settings_dict.get('ENGINE', 'unknown')
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({
+                "status": "Database connection failed ❌",
+                "error": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# ========================
 # 1. Lister et Créer des comptes
 # ========================
 class AccountListCreateView(generics.ListCreateAPIView):
     queryset = Account.objects.all()
     serializer_class = AccountSerializer
 
+    def get_queryset(self):
+        try:
+            return Account.objects.all()
+        except Exception as e:
+            return Account.objects.none()
+
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        account = serializer.save()
-        
-        return Response({
-            "message": "Compte créé avec succès",
-            "account": serializer.data
-        }, status=status.HTTP_201_CREATED)
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            account = serializer.save()
+            
+            return Response({
+                "message": "Compte créé avec succès",
+                "account": serializer.data
+            }, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({
+                "error": f"Erreur lors de la création du compte: {str(e)}"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # ========================

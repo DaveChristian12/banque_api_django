@@ -5,6 +5,9 @@ urlpatterns = [
     # Health check
     path('health/', views.HealthCheckView.as_view(), name='health-check'),
     
+    # Database check
+    path('db/', views.DatabaseCheckView.as_view(), name='db-check'),
+    
     # Liste et création de comptes
     path('', views.AccountListCreateView.as_view(), name='account-list-create'),
     

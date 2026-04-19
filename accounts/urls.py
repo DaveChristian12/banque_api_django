@@ -8,6 +8,9 @@ urlpatterns = [
     # Database check
     path('db/', views.DatabaseCheckView.as_view(), name='db-check'),
     
+    # Migrations check
+    path('migrations/', views.MigrationCheckView.as_view(), name='migration-check'),
+    
     # Liste et création de comptes
     path('', views.AccountListCreateView.as_view(), name='account-list-create'),
     

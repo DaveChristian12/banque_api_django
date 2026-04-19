@@ -33,17 +33,62 @@ class DatabaseCheckView(APIView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # ========================
+# 0c. Migration Check
+# ========================
+class MigrationCheckView(APIView):
+    def get(self, request):
+        try:
+            from django.db import connection
+            with connection.cursor() as cursor:
+                # Check if the accounts_account table exists
+                cursor.execute("""
+                    SELECT name FROM sqlite_master 
+                    WHERE type='table' AND name='accounts_account'
+                """)
+                table_exists = cursor.fetchone() is not None
+            
+            if table_exists:
+                # Try to count records
+                count = Account.objects.count()
+                return Response({
+                    "status": "Migrations have run ✅",
+                    "table_exists": True,
+                    "account_count": count
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({
+                    "status": "Table does not exist ❌",
+                    "table_exists": False,
+                    "message": "Run 'python manage.py migrate' to create tables"
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as e:
+            import traceback
+            return Response({
+                "status": "Migration check failed ❌",
+                "error": str(e),
+                "traceback": traceback.format_exc()
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# ========================
 # 1. Lister et Créer des comptes
 # ========================
 class AccountListCreateView(generics.ListCreateAPIView):
-    queryset = Account.objects.all()
     serializer_class = AccountSerializer
 
     def get_queryset(self):
+        return Account.objects.all()
+    
+    def list(self, request, *args, **kwargs):
         try:
-            return Account.objects.all()
+            queryset = self.get_queryset()
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
         except Exception as e:
-            return Account.objects.none()
+            import traceback
+            return Response({
+                "error": f"Erreur lors de la récupération des comptes: {str(e)}",
+                "traceback": traceback.format_exc()
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def create(self, request, *args, **kwargs):
         try:
@@ -56,8 +101,10 @@ class AccountListCreateView(generics.ListCreateAPIView):
                 "account": serializer.data
             }, status=status.HTTP_201_CREATED)
         except Exception as e:
+            import traceback
             return Response({
-                "error": f"Erreur lors de la création du compte: {str(e)}"
+                "error": f"Erreur lors de la création du compte: {str(e)}",
+                "traceback": traceback.format_exc()
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 

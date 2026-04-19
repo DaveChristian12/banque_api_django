@@ -7,6 +7,13 @@ from .serializers import AccountSerializer
 from decimal import Decimal
 
 # ========================
+# 0. Health Check (no DB required)
+# ========================
+class HealthCheckView(APIView):
+    def get(self, request):
+        return Response({"status": "API is running ✅"}, status=status.HTTP_200_OK)
+
+# ========================
 # 1. Lister et Créer des comptes
 # ========================
 class AccountListCreateView(generics.ListCreateAPIView):

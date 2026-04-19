@@ -39,11 +39,13 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'corsheaders',
     'accounts',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -129,4 +131,13 @@ REST_FRAMEWORK = {
 }
 
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# CORS Configuration
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:8000',
+    'http://localhost:3000',
+    'http://localhost:5000',
+    'https://banque-api-django.onrender.com',
+]
+CORS_ALLOW_CREDENTIALS = True
 

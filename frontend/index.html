@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Client API Banque</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <h1>Client API Banque</h1>
+    <p class="lead">Interface indépendante pour tester l'API des comptes</p>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h2>Statut API</h2>
+      <div id="status">—</div>
+      <button id="btn-status" class="btn">Vérifier le statut</button>
+    </section>
+
+    <section class="card">
+      <h2>Créer un compte</h2>
+      <div id="createMessage" class="message"></div>
+      <label>Nom</label>
+      <input id="holder" type="text" placeholder="Jean Dupont">
+      <label>Email</label>
+      <input id="email" type="email" placeholder="email@example.com">
+      <button id="btn-create" class="btn primary">Créer</button>
+    </section>
+
+    <section class="card">
+      <h2>Comptes</h2>
+      <button id="btn-refresh" class="btn">Rafraîchir</button>
+      <div id="accounts">Chargement...</div>
+    </section>
+
+    <section class="card">
+      <h2>Dépôt / Retrait</h2>
+      <div id="opMessage" class="message"></div>
+      <label>Compte</label>
+      <select id="selectAccount"></select>
+      <label>Montant</label>
+      <input id="amount" type="number" step="0.01" min="0">
+      <div class="row">
+        <button id="btn-deposit" class="btn primary">Dépôt</button>
+        <button id="btn-withdraw" class="btn">Retrait</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">Cette page utilise l'API du même domaine que la page.</footer>
+
+  <script>
+    const API_BASE = window.location.origin + '/api/accounts';
+
+    async function checkStatus(){
+      try{
+        const r = await fetch(`${API_BASE}/health/`);
+        const d = await r.json();
+        document.getElementById('status').textContent = d.status || JSON.stringify(d);
+      }catch(e){ document.getElementById('status').textContent = 'Erreur de connexion'; }
+    }
+
+    async function loadAccounts(){
+      const el = document.getElementById('accounts');
+      const sel = document.getElementById('selectAccount');
+      el.textContent = 'Chargement...'; sel.innerHTML = '';
+      try{
+        const r = await fetch(`${API_BASE}/`);
+        const data = await r.json();
+        if(!Array.isArray(data)) throw new Error('Réponse inattendue');
+        if(data.length === 0){ el.innerHTML = '<p>Aucun compte</p>'; sel.innerHTML = '<option value="">—</option>'; return; }
+        const rows = data.map(a => `<tr><td>${a.holder}</td><td>${a.email}</td><td>${a.balance} €</td></tr>`).join('');
+        el.innerHTML = `<table class="table"><thead><tr><th>Nom</th><th>Email</th><th>Solde</th></tr></thead><tbody>${rows}</tbody></table>`;
+        sel.innerHTML = data.map(a=>`<option value="${a.id}">${a.holder} — ${a.balance} €</option>`).join('');
+      }catch(e){ el.innerHTML = `<div class="error">Erreur: ${e.message}</div>`; }
+    }
+
+    async function createAccount(){
+      const holder = document.getElementById('holder').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const msg = document.getElementById('createMessage'); msg.textContent = '';
+      if(!holder || !email){ msg.textContent = 'Nom et email requis'; msg.className='message error'; return; }
+      try{
+        const r = await fetch(`${API_BASE}/`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({holder,email}) });
+        const d = await r.json();
+        if(!r.ok) throw new Error(d.error || JSON.stringify(d));
+        msg.textContent = `Compte créé: ${d.account.id}`; msg.className='message success';
+        document.getElementById('holder').value=''; document.getElementById('email').value='';
+        await loadAccounts();
+      }catch(e){ msg.textContent = e.message; msg.className='message error'; }
+    }
+
+    async function operation(type){
+      const opMessage = document.getElementById('opMessage'); opMessage.textContent='';
+      const accountId = document.getElementById('selectAccount').value;
+      const amount = parseFloat(document.getElementById('amount').value);
+      if(!accountId){ opMessage.textContent='Sélectionne un compte'; opMessage.className='message error'; return; }
+      if(!amount || amount<=0){ opMessage.textContent='Montant invalide'; opMessage.className='message error'; return; }
+      try{
+        const r = await fetch(`${API_BASE}/${accountId}/${type}/`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({amount}) });
+        const d = await r.json(); if(!r.ok) throw new Error(d.error || JSON.stringify(d));
+        opMessage.textContent = d.message; opMessage.className='message success';
+        document.getElementById('amount').value=''; await loadAccounts();
+      }catch(e){ opMessage.textContent=e.message; opMessage.className='message error'; }
+    }
+
+    document.getElementById('btn-status').addEventListener('click', checkStatus);
+    document.getElementById('btn-refresh').addEventListener('click', loadAccounts);
+    document.getElementById('btn-create').addEventListener('click', createAccount);
+    document.getElementById('btn-deposit').addEventListener('click', ()=>operation('deposit'));
+    document.getElementById('btn-withdraw').addEventListener('click', ()=>operation('withdraw'));
+
+    // initial load
+    checkStatus(); loadAccounts();
+  </script>
+</body>
+</html>

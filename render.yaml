@@ -4,14 +4,10 @@ services:
     env: python
     plan: free
     pythonVersion: 3.10
-    buildCommand: pip install -r requirements.txt && python manage.py migrate && python manage.py collectstatic --noinput
-    startCommand: gunicorn banque_api.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --threads 2 --worker-class sync --timeout 30
+    buildCommand: pip install -r requirements.txt
     envVars:
       - key: SECRET_KEY
         generateValue: true
-      - key: PYTHON_VERSION
-        value: 3.10
-      - key: DATABASE_URL
-        value: sqlite:///db.sqlite3
       - key: DEBUG
         value: False
+

@@ -20,10 +20,13 @@ INSTALLED_APPS = [
 
     'rest_framework',
     'corsheaders',
-    'drf_yasg',
 
     'accounts',
 ]
+
+# Add drf_yasg only in development (not compatible with Python 3.14 on Render)
+if DEBUG:
+    INSTALLED_APPS.append('drf_yasg')
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
